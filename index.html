@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Roman Alphabet Typing Master</title>
+    <title>Roman Alphabet Typing Master - 20 Words Session</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@500&display=swap');
@@ -29,39 +29,46 @@
         .card {
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
+
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="flex items-center justify-center min-h-screen p-4">
 
     <div id="app" class="w-full max-w-2xl bg-white rounded-3xl card p-8 text-center">
         <!-- Header -->
-        <h1 class="text-3xl font-bold text-gray-800 mb-2">タイピング練習</h1>
-        <p class="text-gray-500 mb-8">半角英数で入力してください</p>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">タイピング練習 (20語)</h1>
+        <p class="text-gray-500 mb-6">全300語からランダムに20個出題されます</p>
 
         <!-- Stats -->
-        <div class="flex justify-around mb-10">
-            <div class="bg-blue-50 px-6 py-3 rounded-2xl">
-                <span class="block text-sm text-blue-600 font-bold">スコア</span>
-                <span id="score" class="text-2xl font-bold text-blue-900">0</span>
+        <div class="grid grid-cols-3 gap-4 mb-8">
+            <div class="bg-blue-50 px-4 py-3 rounded-2xl">
+                <span class="block text-xs text-blue-600 font-bold uppercase tracking-wider">Score</span>
+                <span id="score" class="text-xl font-bold text-blue-900">0</span>
             </div>
-            <div class="bg-green-50 px-6 py-3 rounded-2xl">
-                <span class="block text-sm text-green-600 font-bold">正確性</span>
-                <span id="accuracy" class="text-2xl font-bold text-green-900">100%</span>
+            <div class="bg-green-50 px-4 py-3 rounded-2xl">
+                <span class="block text-xs text-green-600 font-bold uppercase tracking-wider">Accuracy</span>
+                <span id="accuracy" class="text-xl font-bold text-green-900">100%</span>
             </div>
-            <div class="bg-purple-50 px-6 py-3 rounded-2xl">
-                <span class="block text-sm text-purple-600 font-bold">残り</span>
-                <span id="remaining" class="text-2xl font-bold text-purple-900">0</span>
+            <div class="bg-purple-50 px-4 py-3 rounded-2xl">
+                <span class="block text-xs text-purple-600 font-bold uppercase tracking-wider">Progress</span>
+                <span id="progress-text" class="text-xl font-bold text-purple-900">0 / 20</span>
             </div>
         </div>
 
+        <!-- Progress Bar -->
+        <div class="w-full bg-gray-100 h-2 rounded-full mb-10 overflow-hidden">
+            <div id="progress-bar" class="bg-purple-500 h-full transition-all duration-300" style="width: 0%"></div>
+        </div>
+
         <!-- Display Area -->
-        <div class="mb-12">
+        <div class="mb-12 min-h-[160px] flex flex-col justify-center">
             <div id="japanese-text" class="text-4xl font-bold text-gray-800 mb-4 tracking-wider">
-                準備はいいですか？
+                Ready?
             </div>
-            <div id="roman-display" class="text-5xl mono font-medium tracking-widest flex justify-center flex-wrap gap-1">
-                <!-- Spans will be injected here -->
-                <span class="text-blue-500 animate-pulse">Press Any Key</span>
+            <div id="roman-display" class="text-4xl mono font-medium tracking-widest flex justify-center flex-wrap gap-1">
+                <span class="text-blue-500 animate-pulse">Press Any Key to Start</span>
             </div>
         </div>
 
@@ -70,50 +77,108 @@
 
         <!-- Footer / Restart -->
         <div class="mt-8">
-            <button id="restart-btn" class="bg-gray-800 hover:bg-black text-white px-8 py-3 rounded-full font-bold transition-all transform hover:scale-105 active:scale-95">
-                最初からやり直す
+            <button id="restart-btn" class="bg-gray-800 hover:bg-black text-white px-10 py-3 rounded-full font-bold transition-all transform hover:scale-105 active:scale-95">
+                新しい20語で開始
             </button>
         </div>
     </div>
 
     <script>
-        // 単語リスト
-        const wordList = [
-            { kanji: "寿司", roman: "sushi" },
-            { kanji: "桜", roman: "sakura" },
-            { kanji: "富士山", roman: "fujisan" },
-            { kanji: "新幹線", roman: "shinkansen" },
-            { kanji: "天ぷら", roman: "tempura" },
-            { kanji: "忍者", roman: "ninja" },
-            { kanji: "おにぎり", roman: "onigiri" },
-            { kanji: "着物", roman: "kimono" },
-            { kanji: "東京", roman: "tokyo" },
-            { kanji: "アニメ", roman: "anime" },
-            { kanji: "プログラミング", roman: "programming" },
-            { kanji: "パソコン", roman: "pasokon" },
-            { kanji: "インターネット", roman: "internet" },
-            { kanji: "珈琲", roman: "kohii" },
-            { kanji: "ラーメン", roman: "raamen" }
+        // 全300単語リスト
+        const fullWordList = [
+            // 食べ物・飲み物 (1-60)
+            { kanji: "寿司", roman: "sushi" }, { kanji: "天ぷら", roman: "tempura" }, { kanji: "ラーメン", roman: "raamen" }, { kanji: "おにぎり", roman: "onigiri" }, { kanji: "納豆", roman: "nattou" },
+            { kanji: "うどん", roman: "udon" }, { kanji: "そば", roman: "soba" }, { kanji: "カレー", roman: "karee" }, { kanji: "牛丼", roman: "gyuudon" }, { kanji: "焼き鳥", roman: "yakitori" },
+            { kanji: "味噌汁", roman: "misoshiru" }, { kanji: "刺身", roman: "sashimi" }, { kanji: "たこ焼き", roman: "takoyaki" }, { kanji: "お好み焼き", roman: "okonomiyaki" }, { kanji: "団子", roman: "dango" },
+            { kanji: "抹茶", roman: "matcha" }, { kanji: "珈琲", roman: "kohii" }, { kanji: "紅茶", roman: "koucha" }, { kanji: "煎茶", roman: "sencha" }, { kanji: "林檎", roman: "ringo" },
+            { kanji: "蜜柑", roman: "mikan" }, { kanji: "西瓜", roman: "suika" }, { kanji: "苺", roman: "ichigo" }, { kanji: "葡萄", roman: "budou" }, { kanji: "桃", roman: "momo" },
+            { kanji: "梨", roman: "nashi" }, { kanji: "柿", roman: "kaki" }, { kanji: "栗", roman: "kuri" }, { kanji: "卵", roman: "tamago" }, { kanji: "豆腐", roman: "toufu" },
+            { kanji: "餅", roman: "mochi" }, { kanji: "羊羹", roman: "youkan" }, { kanji: "煎餅", roman: "senbei" }, { kanji: "鯛焼き", roman: "taiyaki" }, { kanji: "饅頭", roman: "manjuu" },
+            { kanji: "餃子", roman: "gyouza" }, { kanji: "春巻き", roman: "harumaki" }, { kanji: "焼肉", roman: "yakiniku" }, { kanji: "唐揚げ", roman: "karaage" }, { kanji: "炒飯", roman: "chaahan" },
+            { kanji: "麻婆豆腐", roman: "maaboudoufu" }, { kanji: "酢豚", roman: "subuta" }, { kanji: "冷奴", roman: "hiyayakko" }, { kanji: "茶碗蒸し", roman: "chawanmushi" }, { kanji: "枝豆", roman: "edamame" },
+            { kanji: "漬物", roman: "tsukemono" }, { kanji: "厚揚げ", roman: "atsuage" }, { kanji: "油揚げ", roman: "aburaage" }, { kanji: "がんもどき", roman: "ganmodoki" }, { kanji: "筑前煮", roman: "chikuzenni" },
+            { kanji: "肉じゃが", roman: "nikujaga" }, { kanji: "豚汁", roman: "tonjiru" }, { kanji: "雑煮", roman: "zouni" }, { kanji: "赤飯", roman: "sekihan" }, { kanji: "炊き込みご飯", roman: "takikomigohan" },
+            { kanji: "親子丼", roman: "oyakodon" }, { kanji: "かつ丼", roman: "katsudon" }, { kanji: "天丼", roman: "tendon" }, { kanji: "鉄火丼", roman: "tekkadon" }, { kanji: "海鮮丼", roman: "kaisendon" },
+
+            // 自然・動物・植物 (61-120)
+            { kanji: "桜", roman: "sakura" }, { kanji: "向日葵", roman: "himawari" }, { kanji: "紫陽花", roman: "ajisai" }, { kanji: "朝顔", roman: "asagao" }, { kanji: "菖蒲", roman: "ayame" },
+            { kanji: "菊", roman: "kiku" }, { kanji: "椿", roman: "tsubaki" }, { kanji: "牡丹", roman: "botan" }, { kanji: "百合", roman: "yuri" }, { kanji: "蘭", roman: "ran" },
+            { kanji: "富士山", roman: "fujisan" }, { kanji: "琵琶湖", roman: "biwako" }, { kanji: "利根川", roman: "tonegawa" }, { kanji: "信濃川", roman: "shinanogawa" }, { kanji: "阿蘇山", roman: "asosan" },
+            { kanji: "太陽", roman: "taiyou" }, { kanji: "月", roman: "tsuki" }, { kanji: "地球", roman: "chikyuu" }, { kanji: "火星", roman: "kasei" }, { kanji: "木星", roman: "mokusei" },
+            { kanji: "銀河", roman: "ginga" }, { kanji: "彗星", roman: "suisei" }, { kanji: "流星", roman: "ryuusei" }, { kanji: "星座", roman: "seiza" }, { kanji: "宇宙", roman: "uchuu" },
+            { kanji: "犬", roman: "inu" }, { kanji: "猫", roman: "neko" }, { kanji: "兎", roman: "usagi" }, { kanji: "狐", roman: "kitsune" }, { kanji: "狸", roman: "tanuki" },
+            { kanji: "熊", roman: "kuma" }, { kanji: "鹿", roman: "shika" }, { kanji: "猪", roman: "inoshishi" }, { kanji: "猿", roman: "saru" }, { kanji: "馬", roman: "uma" },
+            { kanji: "牛", roman: "ushi" }, { kanji: "羊", roman: "hitsuji" }, { kanji: "象", roman: "zou" }, { kanji: "麒麟", roman: "kirin" }, { kanji: "虎", roman: "tora" },
+            { kanji: "ライオン", roman: "raion" }, { kanji: "豹", roman: "hyou" }, { kanji: "狼", roman: "ookami" }, { kanji: "鯨", roman: "kujira" }, { kanji: "海豚", roman: "iruka" },
+            { kanji: "鮫", roman: "same" }, { kanji: "鮪", roman: "maguro" }, { kanji: "鰹", roman: "katsuo" }, { kanji: "鮭", roman: "sake" }, { kanji: "鯛", roman: "tai" },
+            { kanji: "秋刀魚", roman: "sanma" }, { kanji: "鰻", roman: "unagi" }, { kanji: "蛸", roman: "tako" }, { kanji: "烏賊", roman: "ika" }, { kanji: "蟹", roman: "kani" },
+            { kanji: "海老", roman: "ebi" }, { kanji: "貝", roman: "kai" }, { kanji: "珊瑚", roman: "sango" }, { kanji: "真珠", roman: "shinju" }, { kanji: "亀", roman: "kame" },
+
+            // 日常・道具・技術 (121-200)
+            { kanji: "家", roman: "ie" }, { kanji: "窓", roman: "mado" }, { kanji: "机", roman: "tsukue" }, { kanji: "椅子", roman: "isu" }, { kanji: "鍵", roman: "kagi" },
+            { kanji: "鞄", roman: "kaban" }, { kanji: "靴", roman: "kutsu" }, { kanji: "傘", roman: "kasa" }, { kanji: "鏡", roman: "kagami" }, { kanji: "時計", roman: "tokei" },
+            { kanji: "眼鏡", roman: "megane" }, { kanji: "箸", roman: "hashi" }, { kanji: "茶碗", roman: "chawan" }, { kanji: "布団", roman: "futon" }, { kanji: "枕", roman: "makura" },
+            { kanji: "電話", roman: "denwa" }, { kanji: "手紙", roman: "tegami" }, { kanji: "新聞", roman: "shinbun" }, { kanji: "雑誌", roman: "zasshi" }, { kanji: "漫画", roman: "manga" },
+            { kanji: "小説", roman: "shousetsu" }, { kanji: "地図", roman: "chizu" }, { kanji: "辞書", roman: "jisho" }, { kanji: "教科書", roman: "kyoukasho" }, { kanji: "ノート", roman: "nooto" },
+            { kanji: "鉛筆", roman: "enpitsu" }, { kanji: "消しゴム", roman: "keshigomu" }, { kanji: "万年筆", roman: "mannenhitsu" }, { kanji: "ハサミ", roman: "hasami" }, { kanji: "ホッチキス", roman: "hotchikisu" },
+            { kanji: "パソコン", roman: "pasokon" }, { kanji: "キーボード", roman: "kiiboudo" }, { kanji: "マウス", roman: "mausu" }, { kanji: "プリンター", roman: "purintaa" }, { kanji: "画面", roman: "gamen" },
+            { kanji: "インターネット", roman: "internet" }, { kanji: "メール", roman: "meeru" }, { kanji: "プログラミング", roman: "programming" }, { kanji: "コード", roman: "koudo" }, { kanji: "バグ", roman: "bagu" },
+            { kanji: "サーバー", roman: "saabaa" }, { kanji: "クラウド", roman: "kuraudo" }, { kanji: "人工知能", roman: "jinkouchinou" }, { kanji: "仮想現実", roman: "kasougenjitsu" }, { kanji: "暗号化", roman: "angouka" },
+            { kanji: "電池", roman: "denchi" }, { kanji: "充電器", roman: "juudenki" }, { kanji: "冷蔵庫", roman: "reizouko" }, { kanji: "洗濯機", roman: "sentakuki" }, { kanji: "掃除機", roman: "soujiki" },
+            { kanji: "炊飯器", roman: "suihanki" }, { kanji: "電子レンジ", roman: "denshirenji" }, { kanji: "扇風機", roman: "senpuuki" }, { kanji: "エアコン", roman: "eakon" }, { kanji: "テレビ", roman: "terebi" },
+            { kanji: "カメラ", roman: "kamera" }, { kanji: "写真", roman: "shashin" }, { kanji: "動画", roman: "douga" }, { kanji: "音楽", roman: "ongaku" }, { kanji: "楽器", roman: "gakki" },
+            { kanji: "ピアノ", roman: "piano" }, { kanji: "ギター", roman: "gitaa" }, { kanji: "太鼓", roman: "taiko" }, { kanji: "笛", roman: "fue" }, { kanji: "電車", roman: "densha" },
+            { kanji: "新幹線", roman: "shinkansen" }, { kanji: "飛行機", roman: "hikouki" }, { kanji: "船", roman: "fune" }, { kanji: "自転車", roman: "jitensha" }, { kanji: "自動車", roman: "jidousha" },
+            { kanji: "信号", roman: "shingou" }, { kanji: "道路", roman: "douro" }, { kanji: "橋", roman: "hashi" }, { kanji: "駅", roman: "eki" }, { kanji: "空港", roman: "kuukou" },
+            { kanji: "港", roman: "minato" }, { kanji: "学校", roman: "gakkou" }, { kanji: "病院", roman: "byouin" }, { kanji: "公園", roman: "kouen" }, { kanji: "図書館", roman: "toshokan" },
+
+            // 都市・文化・感情 (201-300)
+            { kanji: "東京", roman: "tokyo" }, { kanji: "大阪", roman: "oosaka" }, { kanji: "京都", roman: "kyoto" }, { kanji: "名古屋", roman: "nagoya" }, { kanji: "札幌", roman: "sapporo" },
+            { kanji: "福岡", roman: "fukuoka" }, { kanji: "横浜", roman: "yokohama" }, { kanji: "神戸", roman: "koube" }, { kanji: "広島", roman: "hiroshima" }, { kanji: "仙台", roman: "sendai" },
+            { kanji: "金沢", roman: "kanazawa" }, { kanji: "奈良", roman: "nara" }, { kanji: "長崎", roman: "nagasaki" }, { kanji: "沖縄", roman: "okinawa" }, { kanji: "北海道", roman: "hokkaido" },
+            { kanji: "四季", roman: "shiki" }, { kanji: "春", roman: "haru" }, { kanji: "夏", roman: "natsu" }, { kanji: "秋", roman: "aki" }, { kanji: "冬", roman: "fuyu" },
+            { kanji: "祭り", roman: "matsuri" }, { kanji: "花火", roman: "hanabi" }, { kanji: "お正月", roman: "oshougatsu" }, { kanji: "節分", roman: "setsubun" }, { kanji: "雛祭り", roman: "hinamatsuri" },
+            { kanji: "端午の節句", roman: "tangonosekku" }, { kanji: "七夕", roman: "tanabata" }, { kanji: "お盆", roman: "obon" }, { kanji: "お月見", roman: "otsukimi" }, { kanji: "七五三", roman: "shichigosan" },
+            { kanji: "大晦日", roman: "oomisoka" }, { kanji: "着物", roman: "kimono" }, { kanji: "浴衣", roman: "yukata" }, { kanji: "忍者", roman: "ninja" }, { kanji: "侍", roman: "samurai" },
+            { kanji: "将棋", roman: "shougi" }, { kanji: "囲碁", roman: "igo" }, { kanji: "空手", roman: "karate" }, { kanji: "柔道", roman: "juudou" }, { kanji: "相撲", roman: "sumou" },
+            { kanji: "剣道", roman: "kendou" }, { kanji: "弓道", roman: "kyuudou" }, { kanji: "茶道", roman: "sadou" }, { kanji: "華道", roman: "kadou" }, { kanji: "書道", roman: "shodou" },
+            { kanji: "俳句", roman: "haiku" }, { kanji: "短歌", roman: "tanka" }, { kanji: "歌舞伎", roman: "kabuki" }, { kanji: "落語", roman: "rakugo" }, { kanji: "能", roman: "nou" },
+            { kanji: "狂言", roman: "kyougen" }, { kanji: "浮世絵", roman: "ukiyoe" }, { kanji: "神社", roman: "jinja" }, { kanji: "お寺", roman: "otera" }, { kanji: "城", roman: "shiro" },
+            { kanji: "庭園", roman: "teien" }, { kanji: "鳥居", roman: "torii" }, { kanji: "畳", roman: "tatami" }, { kanji: "障子", roman: "shouji" }, { kanji: "暖簾", roman: "noren" },
+            { kanji: "幸福", roman: "koufuku" }, { kanji: "希望", roman: "kibou" }, { kanji: "勇気", roman: "yuuki" }, { kanji: "情熱", roman: "jounetsu" }, { kanji: "平和", roman: "heiwa" },
+            { kanji: "自由", roman: "jiyuu" }, { kanji: "友情", roman: "yuujou" }, { kanji: "愛情", roman: "aijou" }, { kanji: "感謝", roman: "kansha" }, { kanji: "尊敬", roman: "sonkei" },
+            { kanji: "信頼", roman: "shinrai" }, { kanji: "忍耐", roman: "nintai" }, { kanji: "誠実", roman: "seijitsu" }, { kanji: "感動", roman: "kandou" }, { kanji: "笑顔", roman: "egao" },
+            { kanji: "未来", roman: "mirai" }, { kanji: "過去", roman: "kako" }, { kanji: "現在", roman: "genzai" }, { kanji: "夢", roman: "yume" }, { kanji: "奇跡", roman: "kiseki" },
+            { kanji: "挑戦", roman: "chousen" }, { kanji: "成功", roman: "seikou" }, { kanji: "努力", roman: "doryoku" }, { kanji: "成長", roman: "seichou" }, { kanji: "発見", roman: "hakken" },
+            { kanji: "発明", roman: "hatsumei" }, { kanji: "創造", roman: "souzou" }, { kanji: "知識", roman: "chishiki" }, { kanji: "知恵", roman: "chie" }, { kanji: "冒険", roman: "bouken" },
+            { kanji: "太陽光", roman: "taiyoukou" }, { kanji: "風", roman: "kaze" }, { kanji: "雨", roman: "ame" }, { kanji: "雪", roman: "yuki" }, { kanji: "虹", roman: "niji" },
+            { kanji: "雲", roman: "kumo" }, { kanji: "星空", roman: "hoshizora" }, { kanji: "深海", roman: "shinkai" }, { kanji: "森林", roman: "shinrin" }, { kanji: "草原", roman: "sougen" }
         ];
 
+        const SESSION_WORD_COUNT = 20; // 1回のセッションで出題する数
+        let shuffledWords = [];
         let currentWordIndex = 0;
         let charIndex = 0;
         let score = 0;
         let totalKeys = 0;
         let missKeys = 0;
         let isStarted = false;
-        let shuffledWords = [];
 
         const japaneseTextEl = document.getElementById('japanese-text');
         const romanDisplayEl = document.getElementById('roman-display');
         const scoreEl = document.getElementById('score');
         const accuracyEl = document.getElementById('accuracy');
-        const remainingEl = document.getElementById('remaining');
+        const progressTextEl = document.getElementById('progress-text');
+        const progressBarEl = document.getElementById('progress-bar');
         const restartBtn = document.getElementById('restart-btn');
         const hiddenInput = document.getElementById('hidden-input');
 
         function initGame() {
-            shuffledWords = [...wordList].sort(() => Math.random() - 0.5);
+            // 全リストからランダムに指定数（20個）を抽出
+            shuffledWords = [...fullWordList]
+                .sort(() => Math.random() - 0.5)
+                .slice(0, SESSION_WORD_COUNT);
+            
             currentWordIndex = 0;
             charIndex = 0;
             score = 0;
@@ -128,7 +193,10 @@
             scoreEl.textContent = score;
             const acc = totalKeys === 0 ? 100 : Math.max(0, Math.floor(((totalKeys - missKeys) / totalKeys) * 100));
             accuracyEl.textContent = `${acc}%`;
-            remainingEl.textContent = shuffledWords.length - currentWordIndex;
+            
+            progressTextEl.textContent = `${currentWordIndex} / ${SESSION_WORD_COUNT}`;
+            const percent = (currentWordIndex / SESSION_WORD_COUNT) * 100;
+            progressBarEl.style.width = `${percent}%`;
         }
 
         function nextWord() {
@@ -141,12 +209,11 @@
             japaneseTextEl.textContent = word.kanji;
             charIndex = 0;
             
-            // Generate roman character spans
             romanDisplayEl.innerHTML = '';
             word.roman.split('').forEach((char, i) => {
                 const span = document.createElement('span');
                 span.textContent = char;
-                span.className = 'char-default';
+                span.className = 'char-default px-0.5';
                 if (i === 0) span.classList.add('cursor');
                 romanDisplayEl.appendChild(span);
             });
@@ -154,9 +221,10 @@
         }
 
         function finishGame() {
-            japaneseTextEl.textContent = "🎉 お疲れ様でした！";
-            romanDisplayEl.innerHTML = `<span class="text-2xl text-gray-400">最終スコア: ${score}</span>`;
+            japaneseTextEl.textContent = "✨ Session Clear! ✨";
+            romanDisplayEl.innerHTML = `<span class="text-xl text-gray-400">Score: ${score} | Miss: ${missKeys}</span>`;
             isStarted = false;
+            updateStats();
         }
 
         function handleInput(key) {
@@ -165,7 +233,6 @@
                 return;
             }
 
-            // Ignore non-character keys
             if (key.length !== 1) return;
 
             const targetWord = shuffledWords[currentWordIndex].roman;
@@ -174,8 +241,7 @@
             totalKeys++;
 
             if (key === targetWord[charIndex]) {
-                // Correct
-                spans[charIndex].className = 'char-correct';
+                spans[charIndex].className = 'char-correct px-0.5';
                 charIndex++;
                 
                 if (charIndex < targetWord.length) {
@@ -183,38 +249,34 @@
                 } else {
                     score += targetWord.length * 10;
                     currentWordIndex++;
-                    setTimeout(nextWord, 100);
+                    setTimeout(nextWord, 50);
                 }
             } else {
-                // Wrong
                 missKeys++;
                 spans[charIndex].classList.add('char-wrong');
                 setTimeout(() => {
                     spans[charIndex].classList.remove('char-wrong');
-                }, 200);
+                }, 150);
             }
             updateStats();
         }
 
-        // Event Listeners
         window.addEventListener('keydown', (e) => {
-            // Focus hidden input for mobile if necessary, or just handle key
-            if (e.key === 'Tab') return; // Allow tabbing
+            if (e.key === 'Tab' || e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift') return;
             handleInput(e.key.toLowerCase());
         });
 
-        // For mobile support, we keep hidden input focused
         document.body.addEventListener('click', () => {
             hiddenInput.focus();
         });
 
         restartBtn.addEventListener('click', (e) => {
-            e.blur();
+            e.currentTarget.blur();
             initGame();
         });
 
-        // Initialize display
-        remainingEl.textContent = wordList.length;
+        // Initialize progress view
+        progressTextEl.textContent = `0 / ${SESSION_WORD_COUNT}`;
 
     </script>
 </body>
