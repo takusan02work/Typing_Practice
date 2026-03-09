@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roman Alphabet Typing Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;700&family=JetBrains+Mono:wght@500&display=swap');
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            background-color: #f0f2f5;
+        }
+
+        .mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .char-default { color: #9ca3af; }
+        .char-correct { color: #10b981; border-bottom: 2px solid #10b981; }
+        .char-wrong { color: #ef4444; background-color: #fee2e2; }
+        .cursor { border-left: 2px solid #3b82f6; animation: blink 1s infinite; }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        .card {
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+    <div id="app" class="w-full max-w-2xl bg-white rounded-3xl card p-8 text-center">
+        <!-- Header -->
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">タイピング練習</h1>
+        <p class="text-gray-500 mb-8">半角英数で入力してください</p>
+
+        <!-- Stats -->
+        <div class="flex justify-around mb-10">
+            <div class="bg-blue-50 px-6 py-3 rounded-2xl">
+                <span class="block text-sm text-blue-600 font-bold">スコア</span>
+                <span id="score" class="text-2xl font-bold text-blue-900">0</span>
+            </div>
+            <div class="bg-green-50 px-6 py-3 rounded-2xl">
+                <span class="block text-sm text-green-600 font-bold">正確性</span>
+                <span id="accuracy" class="text-2xl font-bold text-green-900">100%</span>
+            </div>
+            <div class="bg-purple-50 px-6 py-3 rounded-2xl">
+                <span class="block text-sm text-purple-600 font-bold">残り</span>
+                <span id="remaining" class="text-2xl font-bold text-purple-900">0</span>
+            </div>
+        </div>
+
+        <!-- Display Area -->
+        <div class="mb-12">
+            <div id="japanese-text" class="text-4xl font-bold text-gray-800 mb-4 tracking-wider">
+                準備はいいですか？
+            </div>
+            <div id="roman-display" class="text-5xl mono font-medium tracking-widest flex justify-center flex-wrap gap-1">
+                <!-- Spans will be injected here -->
+                <span class="text-blue-500 animate-pulse">Press Any Key</span>
+            </div>
+        </div>
+
+        <!-- Hidden Input for mobile/focus focus -->
+        <input type="text" id="hidden-input" class="opacity-0 absolute" autocomplete="off" autofocus>
+
+        <!-- Footer / Restart -->
+        <div class="mt-8">
+            <button id="restart-btn" class="bg-gray-800 hover:bg-black text-white px-8 py-3 rounded-full font-bold transition-all transform hover:scale-105 active:scale-95">
+                最初からやり直す
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 単語リスト
+        const wordList = [
+            { kanji: "寿司", roman: "sushi" },
+            { kanji: "桜", roman: "sakura" },
+            { kanji: "富士山", roman: "fujisan" },
+            { kanji: "新幹線", roman: "shinkansen" },
+            { kanji: "天ぷら", roman: "tempura" },
+            { kanji: "忍者", roman: "ninja" },
+            { kanji: "おにぎり", roman: "onigiri" },
+            { kanji: "着物", roman: "kimono" },
+            { kanji: "東京", roman: "tokyo" },
+            { kanji: "アニメ", roman: "anime" },
+            { kanji: "プログラミング", roman: "programming" },
+            { kanji: "パソコン", roman: "pasokon" },
+            { kanji: "インターネット", roman: "internet" },
+            { kanji: "珈琲", roman: "kohii" },
+            { kanji: "ラーメン", roman: "raamen" }
+        ];
+
+        let currentWordIndex = 0;
+        let charIndex = 0;
+        let score = 0;
+        let totalKeys = 0;
+        let missKeys = 0;
+        let isStarted = false;
+        let shuffledWords = [];
+
+        const japaneseTextEl = document.getElementById('japanese-text');
+        const romanDisplayEl = document.getElementById('roman-display');
+        const scoreEl = document.getElementById('score');
+        const accuracyEl = document.getElementById('accuracy');
+        const remainingEl = document.getElementById('remaining');
+        const restartBtn = document.getElementById('restart-btn');
+        const hiddenInput = document.getElementById('hidden-input');
+
+        function initGame() {
+            shuffledWords = [...wordList].sort(() => Math.random() - 0.5);
+            currentWordIndex = 0;
+            charIndex = 0;
+            score = 0;
+            totalKeys = 0;
+            missKeys = 0;
+            isStarted = true;
+            updateStats();
+            nextWord();
+        }
+
+        function updateStats() {
+            scoreEl.textContent = score;
+            const acc = totalKeys === 0 ? 100 : Math.max(0, Math.floor(((totalKeys - missKeys) / totalKeys) * 100));
+            accuracyEl.textContent = `${acc}%`;
+            remainingEl.textContent = shuffledWords.length - currentWordIndex;
+        }
+
+        function nextWord() {
+            if (currentWordIndex >= shuffledWords.length) {
+                finishGame();
+                return;
+            }
+
+            const word = shuffledWords[currentWordIndex];
+            japaneseTextEl.textContent = word.kanji;
+            charIndex = 0;
+            
+            // Generate roman character spans
+            romanDisplayEl.innerHTML = '';
+            word.roman.split('').forEach((char, i) => {
+                const span = document.createElement('span');
+                span.textContent = char;
+                span.className = 'char-default';
+                if (i === 0) span.classList.add('cursor');
+                romanDisplayEl.appendChild(span);
+            });
+            updateStats();
+        }
+
+        function finishGame() {
+            japaneseTextEl.textContent = "🎉 お疲れ様でした！";
+            romanDisplayEl.innerHTML = `<span class="text-2xl text-gray-400">最終スコア: ${score}</span>`;
+            isStarted = false;
+        }
+
+        function handleInput(key) {
+            if (!isStarted) {
+                initGame();
+                return;
+            }
+
+            // Ignore non-character keys
+            if (key.length !== 1) return;
+
+            const targetWord = shuffledWords[currentWordIndex].roman;
+            const spans = romanDisplayEl.querySelectorAll('span');
+            
+            totalKeys++;
+
+            if (key === targetWord[charIndex]) {
+                // Correct
+                spans[charIndex].className = 'char-correct';
+                charIndex++;
+                
+                if (charIndex < targetWord.length) {
+                    spans[charIndex].classList.add('cursor');
+                } else {
+                    score += targetWord.length * 10;
+                    currentWordIndex++;
+                    setTimeout(nextWord, 100);
+                }
+            } else {
+                // Wrong
+                missKeys++;
+                spans[charIndex].classList.add('char-wrong');
+                setTimeout(() => {
+                    spans[charIndex].classList.remove('char-wrong');
+                }, 200);
+            }
+            updateStats();
+        }
+
+        // Event Listeners
+        window.addEventListener('keydown', (e) => {
+            // Focus hidden input for mobile if necessary, or just handle key
+            if (e.key === 'Tab') return; // Allow tabbing
+            handleInput(e.key.toLowerCase());
+        });
+
+        // For mobile support, we keep hidden input focused
+        document.body.addEventListener('click', () => {
+            hiddenInput.focus();
+        });
+
+        restartBtn.addEventListener('click', (e) => {
+            e.blur();
+            initGame();
+        });
+
+        // Initialize display
+        remainingEl.textContent = wordList.length;
+
+    </script>
+</body>
+</html>
